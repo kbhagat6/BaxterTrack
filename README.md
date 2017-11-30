@@ -1,7 +1,6 @@
-# Baxter_pack Repository
+# BaxterTrack Repository
 
-This repository contains the packages which include functionality to do basic tracking with Kinect and transforms to Torso space. I am also working on 
-linemod
+This repository contains the packages which include functionality to do basic tracking with Kinect and transforms to Torso space.
 
 
 ## Installation
