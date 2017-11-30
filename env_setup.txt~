@@ -1,0 +1,210 @@
+Catkin is a Build System based on CMake and extended with Python. It adds features for building distributed code bases and is the successor to rosbuild.  
+It is included by default when ROS is installed. Catkin can also be installed from source or prebuilt packages. Most users will want to use the prebuilt packages, but installing it from source is also quite simple. 
+make install installs the catkin packages
+
+catkinize: The act of converting a rosbuild, or otherwise non-catkin, package into a catkin one. 
+echo $ROS_PACKAGE_PATH  //to make sure environment is properly overlayed. 
+
+
+$ mkdir -p ~/catkin_ws/src
+$ cd ~/catkin_ws/src
+$ catkin_init_workspace   //creates the CMakeLists.txt file which is a sym link to the src folder of workspace (CMakeLists.txt -> /opt/ros/groovy/share/catkin/cmake/toplevel.cmake)
+
+ 
+$ cd ~/catkin_ws/
+$ catkin_make  //should always be called in root of catkin workspace
+		//and this will build anything in the src folder.
+
+cd ~/catkin_ws/src
+ catkin_create_pkg beginner_tutorials std_msgs rospy roscpp
+// this creates a new package called 'beginner_tutorials' which depends on std_msgs, roscpp, and rospy: 
+
+//then call catkin_make again to build the packages.
+
+. ~/catkin_ws/devel/setup.bash   /*  or */
+source devel/setup.bash			//sources the environment setup files
+
+
+
+
+roscore
+rosnode list   //displays  info about a specific node
+
+rosnode info /rosout //returns info about that specific node
+
+
+rosrun turtlesim turtlesim_node
+rosrun <packagename> <node name>
+
+
+//in a new terminal 
+rosnode list //you should see the node turtlesim 
+
+
+rosnode ping turtlesim  //or whatever the name of the node is. 
+
+
+//also can use rostopic -h
+//to get data published on topic
+rostopic echo /turtle1/cmd_vel
+
+//rostopic pub [topic] [msg_type] [args]
+//rostopic pub -1 /turtle1/cmd_vel geometry_msgs/Twist -- '[2.0, 0.0, 0.0]' '[0.0, 0.0, 1.8]'
+
+
+
+rosservice list
+
+The list command shows us that the turtlesim node provides nine services: reset, clear, spawn, kill, turtle1/set_pen, /turtle1/teleport_absolute, /turtle1/teleport_relative, turtlesim/get_loggers, and turtlesim/set_logger_level. There are also two services related to the separate rosout node: /rosout/get_loggers and /rosout/set_logger_level. 
+
+rosservice type clear   returns "std_srvs/Empty"
+This service is empty, this means when the service call is made it takes no arguments (i.e. it sends no data when making a request and receives no data when receiving a response).
+
+rosservice call /clear    //no arguments are used b/c service is type empty
+
+
+if the service has parameters, 
+then do rosservice type <service>| rossrv show
+
+
+
+
+rosparam allows you to store and manipulate data on the ROS Parameter Server. The Parameter Server can store integers, floats, boolean, dictionaries, and lists. rosparam uses the YAML markup language for syntax. In simple cases, YAML looks very natural: 1 is an integer, 1.0 is a float, one is a string, true is a boolean, [1, 2, 3] is a list of integers, 
+
+rosparam list
+
+rosparam get / to show us the contents of the entire Parameter Server. 
+
+rosparam dump params.yaml  // write all parametesr to file params.yaml
+
+
+
+
+roslaunch starts nodes as defined in a launch file. 
+$ roslaunch [package] [filename.launch]
+
+
+
+
+rosed is part of the rosbash suite. It allows you to directly edit a file within a package by using the package name rather than having to type the entire path to the package.
+
+Usage:
+
+$ rosed [package_name] [filename]
+
+Example:
+
+$ rosed roscpp Logger.msg
+
+
+ 
+
+ex.  of a msg: (field type, field name)
+ Header header
+  string child_frame_id
+  geometry_msgs/PoseWithCovariance pose
+  geometry_msgs/TwistWithCovariance twist
+
+
+ex. of a srv (--- seperates the request and response)
+int64 A
+int64 B
+---
+int64 Sum
+
+
+mkdir msg  in the beginner tutorials folder
+echo "int64 num" > msg/Num.msg
+
+//have to make sure these two lines exist in package.xml
+//   <build_depend>message_generation</build_depend>
+  <run_depend>message_runtime</run_depend>
+
+then open up CMakeLists in the package folder and make sure message_generation is in find package function. 
+http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv
+
+
+if it's service  add to add_service_files( )
+
+
+rosmsg show beginner_tutorials/Num
+In the previous example, the message type consists of two parts:
+
+    beginner_tutorials -- the package where the message is defined
+
+    Num -- The name of the msg Num. 
+
+
+
+
+once msg and srv have been added to CMakeLists.txt
+do a catkin_make in the workspace
+
+
+
+
+1. WRITING A SIMPLE PUBLISHER AND SUSCRIBER (Python)
+
+#!/usr/bin/env python   //every Python ROS Node will have this declaration
+pub = rospy.Publisher("chatter", String, queue_size=10) declares that your node is publishing to the chatter topic using the message type String. String here is actually the class std_msgs.msg.String. The queue_size argument is New in ROS hydro and limits the amount of queued messages if any subscriber is not receiving the them fast enough. In older ROS distributions just omit the argument. 
+
+pub.publish(String(str)) that publishes to our chatter topic using a newly created String message. The loop calls r.sleep(), which sleeps just long enough to maintain the desired rate through the loop.
+
+
+rospy.loginfo(str), which performs triple-duty: the messages get printed to screen, it gets written to the Node's log file, and it gets written to rosout. rosout is a handy for debugging: you can pull up messages using rqt_console instead of having to find the console window with your Node's output. 
+
+http://wiki.ros.org/ROS/Tutorials/WritingPublisherSubscriber%28python%29
+
+
+
+listener.py
+suscrcibes to messages of the chatter topic that  talker.py publishes to. 
+
+  rospy.init_node('listener', anonymous=True)
+    rospy.Subscriber("chatter", String, callback)
+
+# spin() simply keeps python from exiting until this node is stopped
+     rospy.spin()
+
+
+
+
+
+There's very little to writing a service using rospy. We declare our node using init_node() and then declare our service:
+
+Toggle line numbers
+
+   s = rospy.Service('add_two_ints', AddTwoInts, handle_add_two_ints)
+
+This declares a new service named add_two_ints with the AddTwoInts service type. All requests are passed to handle_add_two_ints function. handle_add_two_ints is called with instances of AddTwoIntsRequest and returns instances of AddTwoIntsResponse. 
+
+
+*** Remember  srv files are turned into source code for C++, Python, and other languages. 
+after building
+
+
+
+
+when adding a node:
+made sure to chmod a+x  the file
+
+
+
+
+roslaunch baxter_kinect_calibration baxter_bundle_calibrate.launch
+rosrun baxter_tools camera_control.py -o left_hand_camera -r 1280x800
+
+before running moveit, run the joint trajectory server.
+
+roslaunch baxter_moveit_config demo_kinect.launch
+
+
+rosrun tf tf_echo /torso /camera_link
+
+
+http://10.80.30.170/users/sign_in
+
+
+
+
+
